@@ -11,7 +11,7 @@ const signToken = (id) =>
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 
-const createSendToken = (user, statusCode, res) => {
+const createSendToken = (user, statusCode, req, res) => {
   const token = signToken(user._id);
 
   const cookieOptions = {
@@ -19,9 +19,8 @@ const createSendToken = (user, statusCode, res) => {
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true, // cant manipulate cookie in any way ie cant delete the cookie
+    secure: req.secure,
   };
-
-  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
 
   res.cookie("jwt", token, cookieOptions);
 
@@ -50,7 +49,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   await new Email(newUser, url).sendWelcome();
 
-  createSendToken(newUser, 201, res);
+  createSendToken(newUser, 201, req, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -69,7 +68,7 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   // if everything is okay send token to client and login
-  createSendToken(user, 200, res);
+  createSendToken(user, 200, req, res);
 });
 
 exports.logout = catchAsync(async (req, res, next) => {
@@ -223,7 +222,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save(); // save the new values into the document
   // update changepasswordat property of the user -> this was done in the user model
   // log the user in i.e send jwt
-  createSendToken(user, 200, res);
+  createSendToken(user, 200, req, res);
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
@@ -238,5 +237,5 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   user.passwordConfirm = req.body.passwordConfirm;
   await user.save(); // updateById wont work as intended
   // log user in ie send jwt
-  createSendToken(user, 200, res);
+  createSendToken(user, 200, req, res);
 });
